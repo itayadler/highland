@@ -2379,15 +2379,14 @@ exports.toPromise = {
     'ErrorInsideStreamOfStreams': function(test) {
         test.expect(1);
         // note(itay): Perhaps this doesn't exactly replicate the situation in cassandra-driver?
-        var rs = new Stream.Readable();
-        rs._read = function (size) {
-            // Infinite stream!
-        };
+        var rs = streamify([1]);
         var s = _(rs);
-        rs.emit('error', new Error('Error inside stream of streams'));
+        setTimeout(function() {
+            rs.emit('error', new Error('Error inside stream of streams'));
+        }, 10);
         _([1, 2, 3, 4]).flatMap(function(value) {
             if (value === 3) {
-                return _(s);
+                return s.pipe(_());
             }
             else {
                 return _([value]);
