@@ -2376,6 +2376,33 @@ exports['toCallback - error handling edge cases'] = function (test) {
 
 
 exports.toPromise = {
+    'ErrorInsideStreamOfStreams': function(test) {
+        test.expect(1);
+        // note(itay): Perhaps this doesn't exactly replicate the situation in cassandra-driver?
+        var rs = new Stream.Readable();
+        rs._read = function (size) {
+            // Infinite stream!
+        };
+        var s = _(rs);
+        rs.emit('error', new Error('Error inside stream of streams'));
+        _([1, 2, 3, 4]).flatMap(function(value) {
+            if (value === 3) {
+                return _(s);
+            }
+            else {
+                return _([value]);
+            }
+        })
+        .last()
+        .toPromise(Promise)
+        .then(function(result) {
+            console.log('reached promise then:', result);
+        })
+        .catch(function(err){
+            console.log('reached promise catch:', err);
+            test.done();
+        });
+    },
     'ArrayStream': function(test) {
         test.expect(1);
         _([1, 2, 3, 4]).collect().toPromise(Promise).then(function(result) {
